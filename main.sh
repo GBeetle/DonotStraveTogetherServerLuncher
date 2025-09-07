@@ -126,6 +126,7 @@ start_game() {
     base_path="$HOME/.klei"
     valid_clusters=()
 
+    # 遍历 1~5 号存档槽
     for i in {1..5}; do
         cluster_path="$base_path/DST_$i/Cluster_1"
         ini_file="$cluster_path/cluster.ini"
@@ -133,39 +134,51 @@ start_game() {
         if [ -f "$ini_file" ]; then
             cluster_name=$(grep -E "^cluster_name\s*=" "$ini_file" | cut -d= -f2- | sed 's/^[ \t]*//')
             if [ -n "$cluster_name" ]; then
-                valid_clusters+=("$i: $cluster_name")
+                # 用 “DST号|存档名” 的形式保存
+                valid_clusters+=("$i|$cluster_name")
             fi
         fi
     done
 
+    # 没找到存档
     if [ ${#valid_clusters[@]} -eq 0 ]; then
         echo "未找到有效存档。"
         return
     fi
 
     echo "发现以下可用存档："
-    for idx in "${!valid_clusters[@]}"; do
-        echo "${valid_clusters[$idx]}"
+    for cluster in "${valid_clusters[@]}"; do
+        IFS='|' read -r cid cname <<< "$cluster"
+        echo "$cid: $cname"
     done
 
     read -p "请选择要启动的存档编号: " selected_index
 
-    if ! [[ "$selected_index" =~ ^[0-9]+$ ]] || [ "$selected_index" -lt 1 ] || [ "$selected_index" -gt ${#valid_clusters[@]} ]; then
+    # 校验输入是否有效
+    match_found=false
+    for cluster in "${valid_clusters[@]}"; do
+        IFS='|' read -r cid cname <<< "$cluster"
+        if [ "$cid" = "$selected_index" ]; then
+            match_found=true
+            dst_id="DST_$cid"
+            selected_name="$cname"
+            break
+        fi
+    done
+
+    if [ "$match_found" = false ]; then
         echo "选择无效，返回主菜单。"
         return
     fi
 
-    selected="${valid_clusters[$((selected_index - 1))]}"
-    IFS='|' read -r dst_id _ <<< "DST_$selected_index"
-
-    echo "正在软连接存档 $dst_id ..."
+    echo "正在软连接存档 $dst_id ($selected_name) ..."
     ln -snf "$base_path/$dst_id/Cluster_1" "$base_path/DoNotStarveTogether/MyDediServer"
 
     restart_server
 
     log_path="$base_path/DoNotStarveTogether/MyDediServer/Master/server_log.txt"
     echo "以下是服务器日志(Ctrl+C 可停止查看，但服务器仍在运行):"
-    #tail -f "$log_path"
+    # tail -f "$log_path"
 
     echo "返回主菜单。"
 }
