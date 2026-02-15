@@ -20,6 +20,12 @@ download_game() {
     +login anonymous \
     +app_update 343050 validate \
     +quit
+	
+	base_path="$HOME/.klei"
+	for i in {1..5}; do
+        cluster_path="$base_path/DoNotStarveTogether/Cluster_$i"
+        mkdir -p "$cluster_path"
+    done
 
     echo "游戏下载完成。"
 }
@@ -157,7 +163,7 @@ start_game() {
     valid_clusters=()
 
     for i in {1..5}; do
-        cluster_path="$base_path/DST_$i/Cluster_1"
+        cluster_path="$base_path/DoNotStarveTogether/Cluster_$i"
         ini_file="$cluster_path/cluster.ini"
         if [ -f "$ini_file" ]; then
             cluster_name=$(grep -E "^cluster_name\s*=" "$ini_file" | cut -d= -f2- | sed 's/^[ \t]*//')
@@ -184,7 +190,7 @@ start_game() {
         IFS='|' read -r cid cname <<< "$cluster"
         if [ "$cid" = "$selected_index" ]; then
             match_found=true
-            dst_id="DST_$cid"
+            dst_id="Cluster_$cid"
             selected_name="$cname"
             break
         fi
@@ -196,7 +202,7 @@ start_game() {
     fi
 
     echo "正在软连接存档 $dst_id ($selected_name) ..."
-    ln -snf "$base_path/$dst_id/Cluster_1" "$base_path/DoNotStarveTogether/MyDediServer"
+    ln -snf "$base_path/DoNotStarveTogether/$dst_id" "$base_path/DoNotStarveTogether/MyDediServer"
 
     # 新增：启动前更新模组
     mod_file="$base_path/DoNotStarveTogether/MyDediServer/Master/modoverrides.lua"
